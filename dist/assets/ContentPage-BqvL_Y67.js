@@ -1,0 +1,1 @@
+import{d as e,x as t}from"./toast-8OusOE8d.js";import{a as n}from"./storeContext-hQMMn2NS.js";import{NotFoundView as r}from"./NotFoundPage-57vrM5uy.js";import{t as i}from"./PageView-C8dlUu1j.js";var a=e();function o(){let{slug:e=``}=t(),{config:o}=n(),s=o.pages.find(t=>t.slug===e&&t.kind!==`home`);return s?(0,a.jsx)(i,{page:s}):(0,a.jsx)(r,{})}export{o as default};

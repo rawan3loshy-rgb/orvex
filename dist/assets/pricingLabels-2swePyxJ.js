@@ -1,0 +1,1 @@
+import{_ as e,v as t}from"./api-BObMSpbN.js";function n(n){return n.method===`fixed`?t(n.value):n.method===`cost_plus_percent`?`cost + ${e(n.value,n.value%100?1:0)}`:`cost + ${t(n.value)}`}var r={fixed:`Fixed price`,cost_plus_percent:`Cost + %`,cost_plus_fixed:`Cost + amount`};export{n,r as t};

@@ -1,0 +1,178 @@
+# =============================================================================
+#  ORVEX Core: customer installation (production deployment package)
+#
+#  One installation = this compose project + its own PostgreSQL + its own
+#  .env. Nothing here is shared with any other customer.
+#
+#    cp .env.example .env            # fill in every value
+#    docker login registry.orvex.io -u <license id> -p <license key>
+#    docker compose up -d            # with COMPOSE_PROFILES=bundled-db when
+#                                    # not using a managed PostgreSQL
+#
+#  Services
+#    core-api        HTTP: admin SPA (/admin), public website (/), admin API
+#                    (/api/admin), Reseller API (/api/v1), provider callbacks
+#                    (/hooks/providers/*), /healthz
+#    core-worker     job queue consumers (orders, provider calls, webhooks)
+#    core-scheduler  cron tasks, health checks, license validation, backups
+#    caddy           reverse proxy with automatic TLS
+#    postgres        OPTIONAL (profile "bundled-db") for customers without
+#                    managed PostgreSQL
+#    migrate         one-off (profile "tools"); the updater runs it for you
+#
+#  Requires Docker Engine >= 24 with Compose v2.20+ (depends_on.required).
+# =============================================================================
+name: orvex
+
+x-core: &core
+  image: registry.orvex.io/core:${CORE_VERSION:?Set CORE_VERSION in .env}
+  env_file: .env
+  restart: unless-stopped
+  read_only: true
+  tmpfs:
+    - /tmp
+  volumes:
+    - core-data:/var/lib/orvex
+  cap_drop:
+    - ALL
+  security_opt:
+    - no-new-privileges:true
+  stop_grace_period: 30s
+  logging:
+    driver: json-file
+    options:
+      max-size: "20m"
+      max-file: "5"
+  networks:
+    - backend
+  depends_on:
+    postgres:
+      condition: service_healthy
+      required: false
+
+services:
+  core-api:
+    <<: *core
+    command: ["orvex", "serve", "api"]
+    environment:
+      ORVEX_ROLE: api
+      PORT: "8080"
+    expose:
+      - "8080"
+    networks:
+      - backend
+      - edge
+    healthcheck:
+      test: ["CMD", "orvex", "healthcheck", "--role", "api"]
+      interval: 15s
+      timeout: 5s
+      start_period: 40s
+      retries: 3
+
+  core-worker:
+    <<: *core
+    command: ["orvex", "serve", "worker"]
+    environment:
+      ORVEX_ROLE: worker
+    healthcheck:
+      test: ["CMD", "orvex", "healthcheck", "--role", "worker"]
+      interval: 30s
+      timeout: 5s
+      start_period: 40s
+      retries: 3
+
+  core-scheduler:
+    <<: *core
+    command: ["orvex", "serve", "scheduler"]
+    environment:
+      ORVEX_ROLE: scheduler
+    healthcheck:
+      test: ["CMD", "orvex", "healthcheck", "--role", "scheduler"]
+      interval: 30s
+      timeout: 5s
+      start_period: 40s
+      retries: 3
+
+  caddy:
+    image: caddy:2.8-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      APP_DOMAIN: ${APP_DOMAIN:?Set APP_DOMAIN in .env}
+      ACME_EMAIL: ${ACME_EMAIL:?Set ACME_EMAIL in .env}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    networks:
+      - edge
+    depends_on:
+      core-api:
+        condition: service_healthy
+    logging:
+      driver: json-file
+      options:
+        max-size: "20m"
+        max-file: "5"
+
+  # ---------------------------------------------------------------------------
+  # Optional bundled PostgreSQL. Enable with COMPOSE_PROFILES=bundled-db.
+  # Customers on Supabase, Neon, RDS, Hetzner managed DB… leave it disabled
+  # and point DATABASE_URL at their database instead.
+  # ---------------------------------------------------------------------------
+  postgres:
+    profiles: ["bundled-db"]
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-orvex}
+      POSTGRES_USER: ${POSTGRES_USER:-orvex}
+      # Not marked required here because Compose interpolates disabled profiles too;
+      # the postgres image itself refuses to initialise without a password.
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-}
+      POSTGRES_INITDB_ARGS: "--data-checksums"
+    command:
+      - postgres
+      - -c
+      - max_connections=200
+      - -c
+      - shared_buffers=512MB
+      - -c
+      - wal_level=replica
+      - -c
+      - log_min_duration_statement=1000
+    shm_size: 256mb
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - backend
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+
+  # ---------------------------------------------------------------------------
+  # One-off migration runner (the updater and installer call it for you):
+  #   docker compose --profile tools run --rm migrate
+  # ---------------------------------------------------------------------------
+  migrate:
+    <<: *core
+    profiles: ["tools"]
+    restart: "no"
+    command: ["orvex", "migrate", "--require-backup"]
+    environment:
+      ORVEX_ROLE: migrate
+
+volumes:
+  core-data:        # instance key, local storage driver, update journal, local backups
+  postgres-data:    # bundled-db profile only
+  caddy-data:       # TLS certificates and ACME account
+  caddy-config:
+
+networks:
+  edge:             # caddy <-> core-api
+  backend:          # core services <-> postgres (outbound internet allowed for providers & license server)

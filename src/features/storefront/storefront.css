@@ -1,0 +1,43 @@
+/*
+ * Storefront base styles. Colours, radius and fonts come from CSS variables set
+ * on .sf-root by StorefrontLayout (lib/theme.ts → storefrontVars). Kept minimal:
+ * everything else is Tailwind utilities on the scoped tokens.
+ */
+.sf-root {
+  font-family: var(--sf-fb);
+  font-size: 15px;
+  line-height: 1.6;
+  font-feature-settings: normal;
+  -webkit-font-smoothing: antialiased;
+}
+.sf-root .sf-h {
+  font-family: var(--sf-fh);
+  letter-spacing: -0.022em;
+}
+.sf-root ::selection {
+  background: color-mix(in oklab, var(--accent) 24%, transparent);
+}
+.sf-root :focus-visible {
+  outline: 2px solid color-mix(in oklab, var(--accent) 75%, transparent);
+  outline-offset: 2px;
+}
+.sf-root .sf-prose p + p {
+  margin-top: 0.9em;
+}
+.sf-root .sf-embed :where(a) {
+  color: var(--accent-ink);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.sf-root .sf-embed :where(p, ul, ol) + :where(p, ul, ol) {
+  margin-top: 0.75em;
+}
+.sf-root .sf-embed :where(ul) {
+  list-style: disc;
+  padding-left: 1.25em;
+}
+.sf-root .sf-embed :where(h2, h3, h4) {
+  font-family: var(--sf-fh);
+  font-weight: 600;
+  margin-bottom: 0.4em;
+}

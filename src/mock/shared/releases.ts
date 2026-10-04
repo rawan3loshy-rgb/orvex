@@ -1,0 +1,213 @@
+/**
+ * Release catalogue published by the vendor (ORVEX Systems). The vendor
+ * platform serves it to the account portal; each installation's Update Center
+ * fetches it from the vendor release server and verifies signatures locally.
+ *
+ * Core is a modular monolith (core-api, core-worker, core-scheduler on
+ * PostgreSQL, behind Caddy). The notes reference GSM features because the demo
+ * customer (UnlockDesk) runs the GSM vertical pack.
+ * Schema numbers follow db/installation/migrations: production runs 2.4.1
+ * (schema 019 = 019_core_v2, the aligned model), 2.5.0 is the latest stable
+ * (expand-only migrations 020–022), 2.6.0-beta.1 previews 022 → 023.
+ */
+import type { Release } from '@/types/release'
+
+const sig = (s: string) => `ed25519:${s}`
+const compat = { node: '>= 22.11 LTS', postgres: '14 – 17', docker: '>= 24' }
+
+export const RELEASES: Release[] = [
+  {
+    version: '2.6.0-beta.1',
+    channel: 'beta',
+    releasedAt: '2026-09-30T15:00:00Z',
+    title: 'Extension registry preview',
+    summary: 'Preview of signed extensions from the official registry — custom supplier drivers, field types and storefront blocks — with a permission review before anything is enabled.',
+    notes: [
+      { type: 'feature', text: 'Install signed extensions from the official registry — custom supplier drivers, service field types and storefront blocks' },
+      { type: 'feature', text: 'Permission review for extension capabilities (outbound network, secrets, ledger read) before an extension is enabled' },
+      { type: 'feature', text: 'Bulk orders — CSV upload in the admin and the reseller portal, each row placed through the same PlaceOrder command (preview)' },
+      { type: 'improvement', text: 'Driver SDK 3 — result callbacks for long-running supplier jobs (e.g. official carrier unlocks that take days)' },
+    ],
+    migration: { from: '022', to: '023', steps: ['023_extension_registry — create extension_registry and add extensions.permissions'] },
+    minUpgradeFrom: '2.5.0',
+    compatibility: compat,
+    package: { sizeBytes: 94_318_592, sha256: '9a1c…e04d', signature: sig('Qm9h…Yx2c'), signedBy: 'ORVEX Release Key 2026' },
+    requiresBackup: true,
+    breaking: false,
+  },
+  {
+    version: '2.5.0',
+    channel: 'stable',
+    releasedAt: '2026-09-29T09:00:00Z',
+    title: 'Review-queue lookups, webhook message ids & minimum margin',
+    summary: 'Resolve UNKNOWN supplier outcomes faster from the needs-review queue, de-duplicate webhooks on a stable message id, and protect every pricing tier with a minimum margin. Expand-only migrations 020–022.',
+    notes: [
+      { type: 'feature', text: 'Needs-review workspace — look up an UNKNOWN attempt at the supplier (DHRU Fusion getimeiorder / REST status) before resolving it as received or not received; funds stay held until you decide' },
+      { type: 'feature', text: 'Standard Webhooks message ids — webhook-id is persisted per message and stays identical across retries, so receivers can de-duplicate safely' },
+      { type: 'feature', text: 'Pricing rules with a minimum margin per tier (Retail / Silver / Gold / Platinum) — the margin guard skips offers that would sell below it' },
+      { type: 'feature', text: 'Supplier balance alerts — email and Telegram notification when a supplier balance crosses its low-balance threshold' },
+      { type: 'improvement', text: 'Native API rate-limit headers — RateLimit-Limit, RateLimit-Remaining and RateLimit-Reset on every response, Retry-After on 429' },
+      { type: 'improvement', text: 'Update flow drains core-worker before the container swap; migrations are expand-only, so 2.4.x workers keep running while 020–022 apply' },
+      { type: 'security', text: 'API keys and DHRU access keys are compared in constant time against their stored SHA-256 hash; the raw key is shown once at creation and never stored' },
+      { type: 'fix', text: 'Fixed pagination drift on API logs under high write volume' },
+    ],
+    migration: {
+      from: '019',
+      to: '022',
+      steps: [
+        '020_order_review_lookups — add supplier lookup columns to order attempts',
+        '021_webhook_message_ids — persist webhook-id per outbound message',
+        '022_pricing_rule_min_margin — add min_margin_bps to pricing rules',
+      ],
+    },
+    minUpgradeFrom: '2.3.0',
+    compatibility: compat,
+    package: { sizeBytes: 91_844_608, sha256: '3f9b…a71e', signature: sig('Mz2k…9QwP'), signedBy: 'ORVEX Release Key 2026' },
+    requiresBackup: true,
+    breaking: false,
+  },
+  {
+    version: '2.4.1',
+    channel: 'stable',
+    releasedAt: '2026-09-02T09:00:00Z',
+    title: 'Maintenance release',
+    summary: 'Stability fixes for the DHRU Fusion driver, IMEI validation messages and the storefront preview.',
+    notes: [
+      { type: 'fix', text: 'DHRU Fusion driver — per-supplier request timeouts are honoured; a connection refused before the request is sent is classified not-accepted (failover-safe), never UNKNOWN' },
+      { type: 'fix', text: 'Native API and DHRU-compatible endpoint return a field-level error when an IMEI fails the 15-digit / Luhn check' },
+      { type: 'fix', text: 'Storefront preview no longer caches stale theme tokens' },
+      { type: 'security', text: 'Updated dependencies (OpenSSL 3.0.15 base image)' },
+    ],
+    migration: null,
+    minUpgradeFrom: '2.3.0',
+    compatibility: compat,
+    package: { sizeBytes: 89_120_768, sha256: 'c41d…77b0', signature: sig('Xk8a…1LmZ'), signedBy: 'ORVEX Release Key 2026' },
+    requiresBackup: true,
+    breaking: false,
+  },
+  {
+    version: '2.4.0',
+    channel: 'stable',
+    releasedAt: '2026-08-04T09:00:00Z',
+    title: 'Storefront, checkout & reseller portal',
+    summary: 'Catalog-driven storefront built from typed blocks, checkout with guest tracking, payment gateway modules, a self-service reseller portal — and the aligned Core data model (019_core_v2).',
+    notes: [
+      { type: 'feature', text: 'Storefront from typed blocks — service grids and detail pages reference services by id; prices are resolved live per tier, never copied into content' },
+      { type: 'feature', text: 'Checkout for guests and signed-in accounts, with a private tracking link for guest orders' },
+      { type: 'feature', text: 'Payment gateway modules (intents, captures, chargebacks) posting to the double-entry ledger; refunds to wallet or original method — capped, audited and idempotent' },
+      { type: 'feature', text: 'Reseller portal — catalog with the account’s own prices, orders, wallet statements, API keys and webhooks' },
+      { type: 'improvement', text: 'Webhook delivery attempts are logged individually — status, latency and response per retry' },
+      { type: 'improvement', text: 'Custom code only as a sandboxed “custom embed” block' },
+    ],
+    migration: {
+      from: '016',
+      to: '019',
+      steps: [
+        '017_site_builder — storefront pages and blocks',
+        '018_webhook_delivery_attempts — per-attempt delivery log',
+        '019_core_v2 — unified accounts, service revisions, supplier offers, tier pricing, double-entry ledger, payments and account-scoped idempotency (expand-only)',
+      ],
+    },
+    minUpgradeFrom: '2.2.0',
+    compatibility: compat,
+    package: { sizeBytes: 88_604_672, sha256: '77ae…0c12', signature: sig('Pq4r…sT8u'), signedBy: 'ORVEX Release Key 2026' },
+    requiresBackup: true,
+    breaking: false,
+  },
+  {
+    version: '2.3.2',
+    channel: 'stable',
+    releasedAt: '2026-07-08T09:00:00Z',
+    title: 'Security patch',
+    summary: 'Hardening of API key verification and admin session handling.',
+    notes: [
+      { type: 'security', text: 'Constant-time API key comparison on the Native API and the DHRU-compatible endpoint' },
+      { type: 'security', text: 'Admin sessions bound to user agent fingerprint' },
+    ],
+    migration: null,
+    minUpgradeFrom: '2.2.0',
+    compatibility: compat,
+    package: { sizeBytes: 86_900_736, sha256: 'e2b0…98fc', signature: sig('Lm3n…oP4q'), signedBy: 'ORVEX Release Key 2026' },
+    requiresBackup: true,
+    breaking: false,
+  },
+  {
+    version: '2.3.0',
+    channel: 'stable',
+    releasedAt: '2026-06-10T09:00:00Z',
+    title: 'Pricing tiers, DHRU compatibility & migration importer',
+    summary: 'Live-calculated pricing tiers, versioned service field schemas, a DHRU-compatible endpoint for legacy reseller clients and an importer for DHRU panels.',
+    notes: [
+      { type: 'feature', text: 'Pricing tiers (Retail / Silver / Gold / Platinum) calculated live from the selected offer’s cost — with a “Why this price?” breakdown on every quote' },
+      { type: 'feature', text: 'Service revisions with versioned field schemas; GSM vertical pack field types — IMEI (15 digits + Luhn), serial, brand, model, carrier' },
+      { type: 'feature', text: 'DHRU-compatible endpoint — resellers keep their existing DHRU client; orders enter the same PlaceOrder command as every channel' },
+      { type: 'feature', text: 'DHRU migration importer — scan, dry run, diff, review, import and validate services, accounts and balances' },
+      { type: 'feature', text: 'Supplier reconciliation — expected balance from the ledger vs. the supplier’s reported balance, with drift alerts' },
+    ],
+    migration: { from: '015', to: '016', steps: ['016_pricing — pricing tiers, rules and per-service overrides'] },
+    minUpgradeFrom: '2.1.0',
+    compatibility: compat,
+    package: { sizeBytes: 84_410_368, sha256: '1d4f…3a6b', signature: sig('Hj7k…lM2n'), signedBy: 'ORVEX Release Key 2026' },
+    requiresBackup: true,
+    breaking: false,
+  },
+  {
+    version: '2.2.0',
+    channel: 'stable',
+    releasedAt: '2026-04-22T09:00:00Z',
+    title: 'Catalog sync review & extensions',
+    summary: 'Supplier catalog sync with change review, and extension packaging for custom supplier drivers.',
+    notes: [
+      { type: 'feature', text: 'Catalog sync — supplier price and availability changes are queued for review before they touch offers' },
+      { type: 'feature', text: 'Custom supplier drivers as extensions — installed beside Core, never overwritten by updates' },
+      { type: 'improvement', text: 'Supplier health tracking with a circuit breaker — a supplier that keeps failing is skipped until it recovers' },
+    ],
+    migration: { from: '014', to: '015', steps: ['015_extensions — extensions and custom supplier drivers'] },
+    minUpgradeFrom: '2.0.0',
+    compatibility: compat,
+    package: { sizeBytes: 82_837_504, sha256: 'a8c2…4e1f', signature: sig('Df5g…hJ6k'), signedBy: 'ORVEX Release Key 2026' },
+    requiresBackup: true,
+    breaking: false,
+  },
+  {
+    version: '2.1.0',
+    channel: 'stable',
+    releasedAt: '2026-03-05T09:00:00Z',
+    title: 'Supplier drivers, guarded failover & signed webhooks',
+    summary: 'DHRU Fusion, generic REST and manual fulfilment drivers, priority routing with guarded failover, a margin guard and Standard Webhooks.',
+    notes: [
+      { type: 'feature', text: 'DHRU Fusion driver — HTTP form-POST with JSON responses; DHRU statuses 0/1/3/4 are mapped at the edge and never reach Core' },
+      { type: 'feature', text: 'Generic REST driver (JSON, Bearer auth, signed callbacks) and a manual fulfilment driver for hand-processed suppliers' },
+      { type: 'feature', text: 'Priority routing with guarded failover — only a definitive, failover-safe rejection moves the order to the next offer' },
+      { type: 'feature', text: 'UNKNOWN outcomes (timeout or ambiguous response after sending) move the order to Needs Review with funds held; automatic failover is blocked to prevent duplicate supplier orders' },
+      { type: 'feature', text: 'Margin guard — offers that would sell at a loss are skipped' },
+      { type: 'feature', text: 'Standard Webhooks signing — webhook-id, webhook-timestamp and webhook-signature (v1,…) with retries' },
+    ],
+    migration: { from: '013', to: '014', steps: ['014_webhooks — webhook endpoints and deliveries'] },
+    minUpgradeFrom: '2.0.0',
+    compatibility: compat,
+    package: { sizeBytes: 80_740_352, sha256: '5e7a…b9d3', signature: sig('Za1x…cV2b'), signedBy: 'ORVEX Release Key 2026' },
+    requiresBackup: true,
+    breaking: false,
+  },
+  {
+    version: '2.0.0',
+    channel: 'stable',
+    releasedAt: '2026-01-20T09:00:00Z',
+    title: 'ORVEX Core 2.0',
+    summary: 'Modular monolith on PostgreSQL, unified accounts, a double-entry ledger and the Native API v1.',
+    notes: [
+      { type: 'feature', text: 'Unified accounts — retail, reseller, business and API-only — with members and ledger-backed wallets' },
+      { type: 'feature', text: 'Double-entry ledger — funds are held while an order is open, captured on completion and released on rejection' },
+      { type: 'feature', text: 'Native API v1 with scoped keys (orx_live_ / orx_test_) and account-scoped idempotency' },
+      { type: 'improvement', text: 'Modular monolith — core-api, core-worker and core-scheduler on PostgreSQL 14+, with a PostgreSQL job queue (no external broker)' },
+      { type: 'improvement', text: 'Money stored as integer micro-units end to end' },
+    ],
+    migration: { from: '012', to: '013', steps: ['013_orders_and_ledger — orders, ledger accounts, transactions and entries'] },
+    minUpgradeFrom: '1.9.0',
+    compatibility: compat,
+    package: { sizeBytes: 79_691_776, sha256: 'f0e1…2d3c', signature: sig('Nb4m…vC5x'), signedBy: 'ORVEX Release Key 2026' },
+    requiresBackup: true,
+    breaking: true,
+  },
+]

@@ -1,0 +1,28 @@
+# Dependencies and build output are produced inside the image.
+node_modules
+dist
+*.tsbuildinfo
+
+# Never send secrets or local environment files to the build context.
+.env
+.env.*
+!.env.example
+
+# VCS, editors, tooling
+.git
+.gitignore
+.claude
+.vscode
+.idea
+*.log
+npm-debug.log*
+.DS_Store
+Thumbs.db
+
+# Not needed to build the prototype image
+db
+deploy
+docs
+Dockerfile
+docker-compose.yml
+.dockerignore

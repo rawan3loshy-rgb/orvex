@@ -1,0 +1,8 @@
+{
+  // Tailwind v4 at-rules (@theme, @utility, @custom-variant) are parsed by the Tailwind CSS
+  // IntelliSense language mode instead of the plain CSS validator (Tailwind's documented setup).
+  "files.associations": {
+    "*.css": "tailwindcss"
+  },
+  "eslint.useFlatConfig": true
+}

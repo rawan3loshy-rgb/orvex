@@ -1,0 +1,1 @@
+import{D as e,T as t}from"./toast-8OusOE8d.js";import{do as n,fo as r,uo as i}from"./index-_Faf9pHQ.js";var a=e(t(),1);function o(){!n.current&&i();let[e]=(0,a.useState)(r.current);return e}export{o as t};

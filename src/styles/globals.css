@@ -1,0 +1,240 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where([data-theme=dark], [data-theme=dark] *));
+
+/* ------------------------------------------------------------------ */
+/*  Design tokens — single source of truth for both themes             */
+/* ------------------------------------------------------------------ */
+/*
+ * ORVEX identity — graphite, warm off-white and a single signal-coral accent.
+ * Coral (#FF5A36) marks what matters: primary actions, active state, key series,
+ * live routing. Everything else stays neutral graphite.
+ */
+:root,
+[data-theme="light"] {
+  color-scheme: light;
+  --bg: #f7f7f5;
+  --bg-subtle: #f1f0ec;
+  --surface: #ffffff;
+  --surface-2: #f7f6f3;
+  --surface-3: #efede9;
+  --overlay: rgb(23 22 20 / 0.34);
+  --line: #e5e2de;
+  --line-strong: #d5d1cb;
+  --fg: #171717;
+  --fg-2: #46443f;
+  --fg-3: #6b6b6b;
+  --accent: #ff5a36;
+  /* Text-safe coral for links/labels on light surfaces (AA on white). */
+  --accent-ink: #cc3d1a;
+  /* Graphite ink — the second brand color. */
+  --accent-2: #2b2d30;
+  --accent-fg: #ffffff;
+  --success: #17855a;
+  --warning: #b26d07;
+  --danger: #cf2f4c;
+  --info: #56697a;
+  --c1: #ff5a36;
+  --c2: #2e3033;
+  --c3: #3d8c78;
+  --c4: #cf9628;
+  --c5: #a0628c;
+  --c6: #a29c94;
+  --shadow-card: 0 1px 0 rgb(23 20 16 / 0.025), 0 1px 3px rgb(23 20 16 / 0.045);
+  --shadow-pop: 0 0 0 1px rgb(23 20 16 / 0.06), 0 14px 34px -10px rgb(23 20 16 / 0.2), 0 4px 10px -4px rgb(23 20 16 / 0.08);
+  --grid-line: rgb(23 20 16 / 0.05);
+}
+
+[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #0d0e0f;
+  --bg-subtle: #101112;
+  --surface: #151719;
+  --surface-2: #1c1e20;
+  --surface-3: #232527;
+  --overlay: rgb(5 5 6 / 0.66);
+  --line: rgb(244 244 242 / 0.075);
+  --line-strong: rgb(244 244 242 / 0.13);
+  --fg: #f4f4f2;
+  --fg-2: #b3b1ac;
+  --fg-3: #85837f;
+  --accent: #ff5a36;
+  --accent-ink: #ff6e4d;
+  --accent-2: #e6e4df;
+  --accent-fg: #ffffff;
+  --success: #3fc98a;
+  --warning: #f0b14a;
+  --danger: #f25672;
+  --info: #9aabb8;
+  --c1: #ff6a47;
+  --c2: #d9d6d0;
+  --c3: #5cbfa1;
+  --c4: #e8b552;
+  --c5: #cc90b8;
+  --c6: #77736d;
+  --shadow-card: 0 1px 0 rgb(255 255 255 / 0.025) inset, 0 1px 2px rgb(0 0 0 / 0.35);
+  --shadow-pop: 0 0 0 1px rgb(255 255 255 / 0.08), 0 16px 40px -8px rgb(0 0 0 / 0.65), 0 4px 12px -4px rgb(0 0 0 / 0.45);
+  --grid-line: rgb(244 244 242 / 0.035);
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-bg-subtle: var(--bg-subtle);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
+  --color-overlay: var(--overlay);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-fg: var(--fg);
+  --color-fg-2: var(--fg-2);
+  --color-fg-3: var(--fg-3);
+  --color-accent: var(--accent);
+  --color-accent-ink: var(--accent-ink);
+  --color-accent-2: var(--accent-2);
+  --color-accent-fg: var(--accent-fg);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-danger: var(--danger);
+  --color-info: var(--info);
+  --color-c1: var(--c1);
+  --color-c2: var(--c2);
+  --color-c3: var(--c3);
+  --color-c4: var(--c4);
+  --color-c5: var(--c5);
+  --color-c6: var(--c6);
+
+  --font-sans: "Geist Variable", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display: "Archivo Variable", "Geist Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "Geist Mono Variable", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+
+  --text-2xs: 0.6875rem;
+  --text-2xs--line-height: 1rem;
+
+  --shadow-card: var(--shadow-card);
+  --shadow-pop: var(--shadow-pop);
+
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  --animate-shimmer: shimmer 1.6s linear infinite;
+  --animate-pulse-ring: pulse-ring 2s cubic-bezier(0.16, 1, 0.3, 1) infinite;
+  --animate-dash: dash 1.2s linear infinite;
+  --animate-float: float 6s ease-in-out infinite;
+  --animate-fade-up: fade-up 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+  --animate-spin-slow: spin 8s linear infinite;
+}
+
+@keyframes shimmer {
+  0% { background-position: 100% 0; }
+  100% { background-position: -100% 0; }
+}
+@keyframes pulse-ring {
+  0% { transform: scale(0.6); opacity: 0.7; }
+  80%, 100% { transform: scale(2.4); opacity: 0; }
+}
+@keyframes dash {
+  to { stroke-dashoffset: -20; }
+}
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ------------------------------------------------------------------ */
+/*  Base                                                               */
+/* ------------------------------------------------------------------ */
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font-family: var(--font-sans);
+    font-feature-settings: "ss01", "ss02";
+    font-size: 14px;
+    line-height: 1.5;
+    min-height: 100dvh;
+  }
+  ::selection {
+    background: color-mix(in oklab, var(--accent) 30%, transparent);
+  }
+  :focus-visible {
+    outline: 2px solid color-mix(in oklab, var(--accent) 70%, transparent);
+    outline-offset: 2px;
+  }
+  button, [role="button"] { cursor: pointer; }
+  button:disabled { cursor: not-allowed; }
+  code, kbd, pre, samp { font-family: var(--font-mono); font-feature-settings: normal; }
+  input::placeholder, textarea::placeholder { color: var(--fg-3); }
+
+  * { scrollbar-width: thin; scrollbar-color: var(--line-strong) transparent; }
+
+  /* Let grid tracks shrink below their content's min-content width (prevents mobile overflow). */
+  :where(.grid) > * { min-width: 0; }
+}
+
+/* ------------------------------------------------------------------ */
+/*  Shared utilities                                                   */
+/* ------------------------------------------------------------------ */
+@utility tabular {
+  font-variant-numeric: tabular-nums;
+}
+@utility mono-label {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  line-height: 1rem;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--fg-3);
+}
+@utility bg-grid {
+  background-image:
+    linear-gradient(var(--grid-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+@utility bg-dots {
+  background-image: radial-gradient(var(--grid-line) 1.2px, transparent 1.2px);
+  background-size: 18px 18px;
+}
+@utility glass {
+  background: color-mix(in oklab, var(--surface) 72%, transparent);
+  backdrop-filter: blur(14px) saturate(140%);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
+}
+@utility skeleton {
+  background: linear-gradient(90deg, color-mix(in oklab, var(--fg) 6%, transparent) 25%, color-mix(in oklab, var(--fg) 11%, transparent) 37%, color-mix(in oklab, var(--fg) 6%, transparent) 63%);
+  background-size: 400% 100%;
+  animation: var(--animate-shimmer);
+  border-radius: 6px;
+}
+@utility no-scrollbar {
+  scrollbar-width: none;
+  &::-webkit-scrollbar { display: none; }
+}
+/* ORVEX: fine diagonal hatching for technical surfaces (queues, rails, empty tracks). */
+@utility bg-hatch {
+  background-image: repeating-linear-gradient(135deg, var(--grid-line) 0 1px, transparent 1px 7px);
+}
+/* ORVEX: wide display cut for the wordmark and hero numerals. */
+@utility font-wide {
+  font-stretch: 116%;
+}
+@utility mask-fade-x {
+  mask-image: linear-gradient(90deg, transparent, #000 10%, #000 90%, transparent);
+}
+@utility mask-fade-b {
+  mask-image: linear-gradient(180deg, #000 60%, transparent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; scroll-behavior: auto !important; }
+}

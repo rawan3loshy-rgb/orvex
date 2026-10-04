@@ -1,0 +1,33 @@
+# -----------------------------------------------------------------------------
+# ORVEX prototype: run the clickable prototype locally in a container.
+#
+#   docker compose up --build        → http://localhost:8080
+#
+# This is NOT the production deployment of a customer installation; that
+# package lives in deploy/ (core-api, core-worker, core-scheduler, Caddy,
+# optional bundled PostgreSQL). See deploy/README.md.
+# -----------------------------------------------------------------------------
+name: orvex-prototype
+
+services:
+  web:
+    build:
+      context: .
+      args:
+        VITE_API_MODE: ${VITE_API_MODE:-mock}
+        VITE_INSTALLATION_API_URL: ${VITE_INSTALLATION_API_URL:-/api/admin}
+        VITE_VENDOR_API_URL: ${VITE_VENDOR_API_URL:-https://account.orvex.io/api}
+    image: orvex-prototype:local
+    ports:
+      - "8080:8080"
+    environment:
+      PORT: "8080"
+      HOST: "0.0.0.0"
+    restart: unless-stopped
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true

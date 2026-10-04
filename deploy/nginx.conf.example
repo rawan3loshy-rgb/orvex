@@ -1,0 +1,77 @@
+# =============================================================================
+#  ORVEX Core: Nginx reverse proxy (alternative to Caddy)
+#
+#  Use when your organisation standardises on Nginx or terminates TLS on an
+#  existing Nginx. Replace portal.example.com, point the certificate paths at
+#  your certificates (e.g. from certbot), and expose core-api's port 8080 to
+#  this Nginx only (e.g. `ports: ["127.0.0.1:8080:8080"]` on core-api and
+#  remove the caddy service from docker-compose.yml).
+# =============================================================================
+
+upstream orvex_core_api {
+    server 127.0.0.1:8080 max_fails=3 fail_timeout=10s;
+    keepalive 32;
+}
+
+# Rate limiting at the edge is coarse; Core enforces per-key and per-reseller limits.
+limit_req_zone $binary_remote_addr zone=orvex_edge:10m rate=50r/s;
+
+server {
+    listen 80;
+    listen [::]:80;
+    server_name portal.example.com;
+
+    location /.well-known/acme-challenge/ { root /var/www/certbot; }
+    location / { return 301 https://$host$request_uri; }
+}
+
+server {
+    listen 443 ssl;
+    listen [::]:443 ssl;
+    http2 on;                      # nginx >= 1.25.1; older: `listen 443 ssl http2;`
+    server_name portal.example.com;
+
+    ssl_certificate     /etc/letsencrypt/live/portal.example.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/portal.example.com/privkey.pem;
+    ssl_protocols       TLSv1.2 TLSv1.3;
+    ssl_prefer_server_ciphers off;
+    ssl_session_cache   shared:SSL:10m;
+    ssl_session_timeout 1d;
+
+    server_tokens off;
+    client_max_body_size 25m;
+
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+
+    gzip on;
+    gzip_types text/plain text/css application/json application/javascript text/javascript image/svg+xml;
+    gzip_min_length 1024;
+
+    # Internal endpoints are never exposed.
+    location = /readyz  { return 404; }
+    location ^~ /metrics { return 404; }
+
+    location / {
+        limit_req zone=orvex_edge burst=100 nodelay;
+
+        proxy_pass http://orvex_core_api;
+        proxy_http_version 1.1;
+        proxy_set_header Connection "";
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Request-Id $request_id;
+
+        proxy_connect_timeout 5s;
+        proxy_read_timeout 120s;
+        proxy_send_timeout 120s;
+        proxy_next_upstream error timeout http_502 http_503;
+        proxy_next_upstream_tries 2;
+    }
+
+    access_log /var/log/nginx/orvex.access.log;
+    error_log  /var/log/nginx/orvex.error.log warn;
+}

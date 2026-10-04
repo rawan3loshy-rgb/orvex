@@ -1,0 +1,1 @@
+import{D as e,T as t}from"./toast-8OusOE8d.js";import{ai as n}from"./index-_Faf9pHQ.js";import"./shared-BgPiAWDa.js";var r=e(t(),1);function i(e){let t=n();return(0,r.useMemo)(()=>{let n={};for(let e of t.data??[])n[e.supplier.id]=e.supplier.name;return{...n,...e}},[t.data,e])}var a={card:`Card`,paypal:`PayPal`,bank_transfer:`Bank transfer`,manual:`Manual`};export{i as n,a as t};
